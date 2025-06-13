@@ -1,0 +1,192 @@
+<iframe style="width:100%;height:600px;border:none;" srcdoc='
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="https://unpkg.com/blockly/blockly.min.js"></script>
+  <style>
+    html, body { margin: 0; font-family: sans-serif; height: 100%; }
+    #blocklyDiv { height: 50vh; width: 100%; }
+    #controls { padding: 10px; background: #f0f0f0; display: flex; flex-wrap: wrap; align-items: center; }
+    #controls button, #controls input[type=file] {
+      padding: 10px 16px; margin: 4px; font-size: 14px;
+    }
+    #canvasArea { height: 300px; width: 100%; background: #fff; border: 1px solid #ccc; }
+  </style>
+</head>
+<body>
+  <div id="blocklyDiv"></div>
+  <div id="controls">
+    <button id="runButton">&#9654; Run</button>
+    <button id="saveButton">&#128190; Save</button>
+    <input type="file" id="loadFile" accept=".xml" />
+  </div>
+  <canvas id="canvasArea" width="800" height="300"></canvas>
+
+  <xml id="toolbox" style="display:none">
+    <category name="Drawing" colour="210">
+      <block type="draw_circle"></block>
+      <block type="draw_rect"></block>
+      <block type="set_color"></block>
+      <block type="clear_canvas"></block>
+    </category>
+    <category name="Motion" colour="120">
+      <block type="move_sprite"></block>
+      <block type="set_position"></block>
+    </category>
+    <category name="Logic" colour="%{BKY_LOGIC_HUE}">
+      <block type="controls_if"></block>
+      <block type="logic_compare"></block>
+    </category>
+    <category name="Loops" colour="%{BKY_LOOPS_HUE}">
+      <block type="controls_repeat_ext">
+        <value name="TIMES"><shadow type="math_number"><field name="NUM">5</field></shadow></value>
+      </block>
+    </category>
+    <category name="Math" colour="%{BKY_MATH_HUE}">
+      <block type="math_number"></block>
+      <block type="math_arithmetic"></block>
+      <block type="math_random_int">
+        <value name="FROM"><shadow type="math_number"><field name="NUM">0</field></shadow></value>
+        <value name="TO"><shadow type="math_number"><field name="NUM">100</field></shadow></value>
+      </block>
+    </category>
+    <category name="Variables" custom="VARIABLE" colour="%{BKY_VARIABLES_HUE}"></category>
+    <category name="Functions" custom="PROCEDURE" colour="%{BKY_PROCEDURES_HUE}"></category>
+  </xml>
+
+  <script>
+    const workspace = Blockly.inject("blocklyDiv", {
+      toolbox: document.getElementById("toolbox"),
+      trashcan: true,
+      zoom: { controls: true, wheel: true }
+    });
+
+    const canvas = document.getElementById("canvasArea");
+    const ctx = canvas.getContext("2d");
+    let sprite = { x: 400, y: 150 };
+
+    Blockly.Blocks["draw_circle"] = {
+      init: function() {
+        this.appendDummyInput()
+          .appendField("draw circle x")
+          .appendField(new Blockly.FieldNumber(100), "X")
+          .appendField("y")
+          .appendField(new Blockly.FieldNumber(100), "Y")
+          .appendField("radius")
+          .appendField(new Blockly.FieldNumber(30), "RADIUS");
+        this.setPreviousStatement(true);
+        this.setNextStatement(true);
+        this.setColour(210);
+      }
+    };
+    Blockly.JavaScript["draw_circle"] = block =>
+      \`ctx.beginPath(); ctx.arc(\${block.getFieldValue("X")}, \${block.getFieldValue("Y")}, \${block.getFieldValue("RADIUS")}, 0, 2 * Math.PI); ctx.fill();\n\`;
+
+    Blockly.Blocks["draw_rect"] = {
+      init: function() {
+        this.appendDummyInput()
+          .appendField("draw rect x")
+          .appendField(new Blockly.FieldNumber(50), "X")
+          .appendField("y")
+          .appendField(new Blockly.FieldNumber(50), "Y")
+          .appendField("width")
+          .appendField(new Blockly.FieldNumber(100), "WIDTH")
+          .appendField("height")
+          .appendField(new Blockly.FieldNumber(50), "HEIGHT");
+        this.setPreviousStatement(true);
+        this.setNextStatement(true);
+        this.setColour(210);
+      }
+    };
+    Blockly.JavaScript["draw_rect"] = block =>
+      \`ctx.fillRect(\${block.getFieldValue("X")}, \${block.getFieldValue("Y")}, \${block.getFieldValue("WIDTH")}, \${block.getFieldValue("HEIGHT")});\n\`;
+
+    Blockly.Blocks["set_color"] = {
+      init: function() {
+        this.appendDummyInput()
+          .appendField("set color")
+          .appendField(new Blockly.FieldColour("#ff0000"), "COLOR");
+        this.setPreviousStatement(true);
+        this.setNextStatement(true);
+        this.setColour(210);
+      }
+    };
+    Blockly.JavaScript["set_color"] = block =>
+      \`ctx.fillStyle = "\${block.getFieldValue("COLOR")}";\n\`;
+
+    Blockly.Blocks["clear_canvas"] = {
+      init: function() {
+        this.appendDummyInput().appendField("clear canvas");
+        this.setPreviousStatement(true);
+        this.setNextStatement(true);
+        this.setColour(210);
+      }
+    };
+    Blockly.JavaScript["clear_canvas"] = () =>
+      \`ctx.clearRect(0, 0, canvas.width, canvas.height);\n\`;
+
+    Blockly.Blocks["move_sprite"] = {
+      init: function() {
+        this.appendDummyInput()
+          .appendField("move sprite by x")
+          .appendField(new Blockly.FieldNumber(10), "DX")
+          .appendField("y")
+          .appendField(new Blockly.FieldNumber(0), "DY");
+        this.setPreviousStatement(true);
+        this.setNextStatement(true);
+        this.setColour(120);
+      }
+    };
+    Blockly.JavaScript["move_sprite"] = block =>
+      \`sprite.x += \${block.getFieldValue("DX")}; sprite.y += \${block.getFieldValue("DY")}; ctx.beginPath(); ctx.arc(sprite.x, sprite.y, 10, 0, 2 * Math.PI); ctx.fill();\n\`;
+
+    Blockly.Blocks["set_position"] = {
+      init: function() {
+        this.appendDummyInput()
+          .appendField("set sprite to x")
+          .appendField(new Blockly.FieldNumber(100), "X")
+          .appendField("y")
+          .appendField(new Blockly.FieldNumber(100), "Y");
+        this.setPreviousStatement(true);
+        this.setNextStatement(true);
+        this.setColour(120);
+      }
+    };
+    Blockly.JavaScript["set_position"] = block =>
+      \`sprite.x = \${block.getFieldValue("X")}; sprite.y = \${block.getFieldValue("Y")}; ctx.beginPath(); ctx.arc(sprite.x, sprite.y, 10, 0, 2 * Math.PI); ctx.fill();\n\`;
+
+    document.getElementById("runButton").onclick = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const code = Blockly.JavaScript.workspaceToCode(workspace);
+      try {
+        new Function("ctx", "canvas", "sprite", code)(ctx, canvas, sprite);
+      } catch (e) {
+        alert("Error: " + e.message);
+      }
+    };
+
+    document.getElementById("saveButton").onclick = () => {
+      const xml = Blockly.Xml.workspaceToDom(workspace);
+      const xmlText = Blockly.Xml.domToPrettyText(xml);
+      const blob = new Blob([xmlText], { type: "text/xml" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "project.xml";
+      a.click();
+    };
+
+    document.getElementById("loadFile").addEventListener("change", (event) => {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = e => {
+        const xml = Blockly.Xml.textToDom(e.target.result);
+        Blockly.Xml.clearWorkspaceAndLoadFromXml(xml, workspace);
+      };
+      reader.readAsText(file);
+    });
+  </script>
+</body>
+</html>
+'></iframe>
